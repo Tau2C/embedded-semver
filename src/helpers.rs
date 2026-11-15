@@ -2,6 +2,7 @@ use bitvec::prelude::*;
 
 use crate::{sizes, Error};
 
+#[allow(dead_code)]
 pub fn num_as_bv<const SIZE: usize, const ITER_SIZE: usize>(
     bv: &mut BitArray<[u8; SIZE], Msb0>,
     iter: &mut sizes::SizeIterator<ITER_SIZE>,

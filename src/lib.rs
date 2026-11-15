@@ -126,6 +126,12 @@ pub enum Magic {
 
 impl Default for Magic {
     fn default() -> Self {
+        Self::const_default()
+    }
+}
+
+impl Magic {
+    pub const fn const_default() -> Self {
         Magic::V0
     }
 }
