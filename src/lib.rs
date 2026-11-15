@@ -124,8 +124,8 @@ pub enum Magic {
     V3 = 3,
 }
 
-impl Default for Magic {
-    fn default() -> Self {
+impl Magic {
+    pub const fn const_default() -> Self {
         Magic::V0
     }
 }

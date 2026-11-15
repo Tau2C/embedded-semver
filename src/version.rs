@@ -27,12 +27,12 @@ pub struct Semver {
 
 impl Semver {
     /// Helper for constructing new instance
-    pub fn new(major: usize, minor: usize, patch: usize) -> Self {
+    pub const fn new(major: usize, minor: usize, patch: usize) -> Self {
         Self {
             major,
             minor,
             patch,
-            magic: Default::default(),
+            magic: Magic::const_default(),
         }
     }
 
