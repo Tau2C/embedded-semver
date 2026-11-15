@@ -65,31 +65,61 @@ impl Semver {
     }
 
     /// Convert to an i32. Errs if any of the fields overflow
-    pub fn to_i32(&self) -> Result<i32, Error> {
-        let mut bv: BitArray<[u8; 4], Msb0> = BitArray::ZERO;
-        let sizes = sizes::size_iterator(&sizes::I32_SIZES);
-        self.append_with_size_iterator(&mut bv, sizes)?;
-        Ok(i32::from_le_bytes(bv.data))
+    pub const fn to_i32(&self) -> Result<i32, Error> {
+        match self.to_u32() {
+            Ok(val) => Ok(val as i32),
+            Err(e) => Err(e),
+        }
     }
 
     /// Convert to an u32. Errs if any of the fields overflow
-    pub fn to_u32(&self) -> Result<u32, Error> {
-        let val = self.to_i32()?;
-        Ok(u32::from_le_bytes(val.to_le_bytes()))
+    pub const fn to_u32(&self) -> Result<u32, Error> {
+        let magic = Magic::const_default() as u32;
+        if magic > 4 {
+            return Err(Error::Overflow);
+        }
+        if self.major > 1024 || self.minor > 1024 || self.patch > 1024 {
+            return Err(Error::Overflow);
+        }
+
+        let b0 = ((magic & 0x3) << 6) | ((self.major as u32 & 0x3F) << 0);
+        let b1 = (((self.major as u32 >> 6) & 0xF) << 4) | ((self.minor as u32 & 0xF) << 0);
+        let b2 = (((self.minor as u32 >> 4) & 0x3F) << 2) | ((self.patch as u32 & 0x3) << 0);
+        let b3 = ((self.patch as u32 >> 2) & 0xFF) << 0;
+
+        Ok(u32::from_le_bytes([b0 as u8, b1 as u8, b2 as u8, b3 as u8]))
+    }
+
+    /// Convert to an i64. Errs if any of the fields overflow
+    pub const fn to_i64(&self) -> Result<i64, Error> {
+        match self.to_u64() {
+            Ok(val) => Ok(val as i64),
+            Err(e) => Err(e),
+        }
     }
 
     /// Convert to an u64. Errs if any of the fields overflow
-    pub fn to_i64(&self) -> Result<i64, Error> {
-        let mut bv: BitArray<[u8; 8], Msb0> = BitArray::ZERO;
-        let sizes = sizes::size_iterator(&sizes::I64_SIZES);
-        self.append_with_size_iterator(&mut bv, sizes)?;
-        Ok(i64::from_le_bytes(bv.data))
-    }
+    pub const fn to_u64(&self) -> Result<u64, Error> {
+        let magic = Magic::const_default() as u64;
+        if magic > 16 {
+            return Err(Error::Overflow);
+        }
+        if self.major > 65536 || self.minor > 65536 || self.patch > 65536 {
+            return Err(Error::Overflow);
+        }
 
-    /// Convert to an u64. Errs if any of the fields overflow
-    pub fn to_u64(&self) -> Result<u64, Error> {
-        let val = self.to_i64()?;
-        Ok(u64::from_le_bytes(val.to_le_bytes()))
+        let b0 = ((magic & 0xF) << 4) | ((self.major as u64 & 0xF) << 0);
+        let b1 = (self.major as u64 >> 4) & 0xFF;
+        let b2 = (((self.major as u64 >> 12) & 0xF) << 4) | ((self.minor as u64 & 0xF) << 0);
+        let b3 = (self.minor as u64 >> 4) & 0xFF;
+        let b4 = (((self.minor as u64 >> 12) & 0xF) << 4) | ((self.patch as u64 & 0xF) << 0);
+        let b5 = (self.patch as u64 >> 4) & 0xFF;
+        let b6 = ((self.patch as u64 >> 12) & 0xF) << 4;
+        let b7 = 0u8;
+
+        Ok(u64::from_le_bytes([
+            b0 as u8, b1 as u8, b2 as u8, b3 as u8, b4 as u8, b5 as u8, b6 as u8, b7,
+        ]))
     }
 
     fn from_size_iterator<const SIZE: usize>(
@@ -104,6 +134,7 @@ impl Semver {
         })
     }
 
+    #[allow(dead_code)]
     fn append_with_size_iterator<const SIZE: usize, const ITER_SIZE: usize>(
         &self,
         bv: &mut BitArray<[u8; SIZE], Msb0>,
